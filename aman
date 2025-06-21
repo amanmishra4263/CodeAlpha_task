@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Social App</title>
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+    <nav>
+        {% if user.is_authenticated %}
+            <a href="{% url 'home' %}">Home</a>
+            <a href="{% url 'profile' user.username %}">Profile</a>
+            <a href="{% url 'logout' %}">Logout</a>
+        {% else %}
+            <a href="{% url 'login' %}">Login</a>
+            <a href="{% url 'register' %}">Register</a>
+        {% endif %}
+    </nav>
+    <main>
+        {% block content %}
+        {% endblock %}
+    </main>
+</body>
+</html>
+HOME TAMPLATE
+    {% extends 'base.html' %}
+{% block content %}
+    <h1>Home</h1>
+    <form method="POST">
+        {% csrf_token %}
+        <textarea name="content" placeholder="What's on your mind?" required></textarea>
+        <button type="submit">Post</button>
+    </form>
+    {% for post in posts %}
+        <div class="post">
+            <div class="post-header">
+                <img src="{{ post.user.profile.profile_picture }}" alt="Avatar" class="avatar">
+                <div>
+                    <a href="{% url 'profile' post.user.username %}" class="username">{{ post.user.username }}</a>
+                    <span class="timestamp">{{ post.created_at }}</span>
+                </div>
+            </div>
+            <p>{{ post.content }}</p>
+            <form method="POST" action="{% url 'profile' post.user.username %}">
+                {% csrf_token %}
+                <input type="hidden" name="post_id" value="{{ post.id }}">
+                <button type="submit" name="like" class="like-btn">
+                    ❤️ {{ post.likes.count }} Like{{ post.likes.count|pluralize }}
+                </button>
+            </form>
+            <form method="POST" action="{% url 'create_comment' post.id %}">
+                {% csrf_token %}
+                <input type="text" name="content" placeholder="Add a comment" required>
+                <button type="submit">Comment</button>
+            </form>
+            {% for comment in post.comments.all %}
+                <div class="comment">
+                    <span class="username">{{ comment.user.username }}</span>: {{ comment.content }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endfor %}
+{% endblock %}
+PROFILETAMPLATE
+{% extends 'base.html' %}
+{% block content %}
+    <div class="profile">
+        <img src="{{ profile_user.profile.profile_picture }}" alt="Profile Picture" class="profile-pic">
+        <h1>{{ profile_user.username }}</h1>
+        <p class="bio">{{ profile_user.profile.bio|default:"No bio yet" }}</p>
+        <p><strong>Followers:</strong> {{ follower_count }} | <strong>Following:</strong> {{ following_count }}</p>
+        {% if user != profile_user %}
+            {% if is_following %}
+                <form method="POST" action="{% url 'unfollow_user' profile_user.username %}">
+                    {% csrf_token %}
+                    <button type="submit" class="follow-btn">Unfollow</button>
+                </form>
+            {% else %}
+                <form method="POST" action="{% url 'follow_user' profile_user.username %}">
+                    {% csrf_token %}
+                    <button type="submit" class="follow-btn">Follow</button>
+                </form>
+            {% endif %}
+        {% endif %}
+    </div>
+    <h2>Posts</h2>
+    {% for post in posts %}
+        <div class="post">
+            <div class="post-header">
+                <img src="{{ post.user.profile.profile_picture }}" alt="Avatar" class="avatar">
+                <div>
+                    <a href="{% url 'profile' post.user.username %}" class="username">{{ post.user.username }}</a>
+                    <span class="timestamp">{{ post.created_at }}</span>
+                </div>
+            </div>
+            <p>{{ post.content }}</p>
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="post_id" value="{{ post.id }}">
+                <button type="submit" name="like" class="like-btn">
+                    ❤️ {{ post.likes.count }} Like{{ post.likes.count|pluralize }}
+                </button>
+            </form>
+            {% for comment in post.comments.all %}
+                <div class="comment">
+                    <span class="username">{{ comment.user.username }}</span>: {{ comment.content }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endfor %}
+{% endblock %}
+LOGIN AND RESITER TAMPLATE{% extends 'base.html' %}
+{% block content %}
+    <h1>{% if form.is_registration %}Register{% else %}Login{% endif %}</h1>
+    {% if error %}
+        <p class="error">{{ error }}</p>
+    {% endif %}
+    <form method="POST">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">{% if form.is_registration %}Register{% else %}Login{% endif %}</button>
+    </form>
+{% endblock %}
+css* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f0f2f5;
+    padding: 20px;
+}
+
+nav {
+    background-color: #333;
+    padding: 10px;
+    margin-bottom: 20px;
+}
+
+nav a {
+    color: white;
+    text-decoration: none;
+    margin-right: 15px;
+    font-size: 16px;
+}
+
+nav a:hover {
+    text-decoration: underline;
+}
+
+main {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+h1 {
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+form {
+    background-color: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+textarea, input[type="text"], input[type="password"], input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+.post {
+    background-color: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.post-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-right: 10px;
+}
+
+.username {
+    font-weight: bold;
+    color: #007bff;
+    text-decoration: none;
+}
+
+.username:hover {
+    text-decoration: underline;
+}
+
+.timestamp {
+    color: #666;
+    font-size: 12px;
+    display: block;
+}
+
+.post p {
+    margin-bottom: 10px;
+}
+
+.comment {
+    margin-top: 10px;
+    padding-left: 20px;
+}
+
+.comment .username {
+    margin-right: 5px;
+}
+
+.profile {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.profile-pic {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    margin-bottom: 10px;
+}
+
+.bio {
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.follow-btn {
+    background-color: #28a745;
+}
+
+.follow-btn:hover {
+    background-color: #218838;
+}
+
+.error {
+    color: red;
+    margin-bottom: 10px;
+}
